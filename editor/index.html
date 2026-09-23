@@ -1,53 +1,771 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4f0e7" />
-    <title>receipt! editor</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;500;700&family=Unkempt:wght@400;700&display=swap" />
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body>
-    <main>
-      <header class="editor-header">
-        <a class="hack-club-mark" href="../" aria-label="Back to receipt home">
-          <img src="./assets/hack-club-2026.svg" alt="Hack Club" />
-        </a>
-      </header>
+// RECEIPT!
+// LUNAR TRANSMISSION
+// A tiny thermal-print record of a signal received from the Moon.
 
-      <section class="intro" aria-labelledby="editor-title">
-        <h1 id="editor-title">make your receipt.</h1>
-        <p>edit <code>sketch.js</code> and it redraws here.</p>
-      </section>
+// --------------------------------------------------
+// RECEIPT SETTINGS
+// --------------------------------------------------
 
-      <section class="status-bar" aria-live="polite">
-        <span id="status-dot" class="status-dot"></span>
-        <span id="status">Rendering…</span>
-        <span id="dimensions" class="dimensions"></span>
-      </section>
+export const receipt = {
+  height: 1500,
+  seed: 2026,
+};
 
-      <section class="workspace">
-        <div id="error" class="error-card" hidden></div>
-        <div id="receipt-shell" class="receipt-shell">
-          <div id="canvas-host"></div>
-          <div class="paper-end" aria-hidden="true"></div>
-        </div>
-      </section>
 
-      <section class="controls" aria-label="Receipt controls">
-        <label for="seed">Seed</label>
-        <input id="seed" type="number" step="1" inputmode="numeric" />
-        <button id="shuffle" class="icon-button" type="button" title="Random seed" aria-label="Use a random seed">↻</button>
-        <button id="export" class="export-button" type="button">Export PNG</button>
-        <a id="submit" class="submit-button" href="https://forms.hackclub.com/receipt" target="_blank">Submit &rarr;</a>
-      </section>
+// --------------------------------------------------
+// MAIN RECEIPT DRAWING
+// --------------------------------------------------
 
-      <p class="editor-signoff">happy with it? ship the repo link, this PNG, and an hour on Hackatime -- closes thursday, september 24. run by <a href="https://cskartikey.dev/" target="_blank">@cskartikey</a></p>
-    </main>
+export function drawReceipt(p) {
+  const { width: w } = p;
 
-    <script type="module" src="/app.js"></script>
-  </body>
-</html>
+  const margin = 24;
+  const center = w / 2;
+
+  // Clean thermal-paper background
+  p.background(255);
+  p.noSmooth();
+
+
+  // --------------------------------------------------
+  // HEADER
+  // --------------------------------------------------
+
+  p.noStroke();
+  p.fill(0);
+
+  p.textFont("monospace");
+  p.textAlign(p.CENTER, p.TOP);
+  p.textStyle(p.BOLD);
+
+  p.textSize(25);
+  p.text("LUNAR TRANSMISSION", center, 28);
+
+  p.textStyle(p.NORMAL);
+  p.textSize(9);
+  p.text("RECEIVED // 23.09.2026", center, 61);
+
+  dashedLine(p, margin, 87, w - margin, 87, 5, 5);
+
+
+  // --------------------------------------------------
+  // RECEIPT INFORMATION
+  // --------------------------------------------------
+
+  p.textAlign(p.LEFT, p.TOP);
+  p.textSize(8);
+
+  p.text("SOURCE", margin, 105);
+  p.text("MOON / SECTOR 04", margin, 118);
+
+  p.textAlign(p.RIGHT, p.TOP);
+
+  p.text("STATUS", w - margin, 105);
+  p.text("SIGNAL LOCKED", w - margin, 118);
+
+
+  // --------------------------------------------------
+  // STAR FIELD
+  // --------------------------------------------------
+
+  p.noStroke();
+  p.fill(0);
+
+  for (let i = 0; i < 180; i += 1) {
+    const x = p.random(margin, w - margin);
+    const y = p.random(145, 390);
+
+    const size = p.random([1, 1, 1, 1, 2]);
+
+    if (p.random() > 0.88) {
+      p.rect(x - 3, y, 7, 1);
+      p.rect(x, y - 3, 1, 7);
+    } else {
+      p.rect(x, y, size, size);
+    }
+  }
+
+
+  // --------------------------------------------------
+  // MOON
+  // --------------------------------------------------
+
+  const moonX = center;
+  const moonY = 265;
+  const moonR = 78;
+
+  p.fill(255);
+  p.stroke(0);
+  p.strokeWeight(3);
+
+  p.circle(moonX, moonY, moonR * 2);
+
+
+  // --------------------------------------------------
+  // MOON CRATERS
+  // --------------------------------------------------
+
+  p.strokeWeight(2);
+  p.noFill();
+
+  const craters = [
+    [-28, -24, 19],
+    [22, -35, 12],
+    [35, 10, 18],
+    [-10, 29, 13],
+    [-39, 28, 9],
+    [4, -4, 7]
+  ];
+
+  craters.forEach(([dx, dy, size]) => {
+    p.circle(
+      moonX + dx,
+      moonY + dy,
+      size
+    );
+
+    if (size > 12) {
+      p.line(
+        moonX + dx - size * 0.25,
+        moonY + dy + size * 0.45,
+        moonX + dx + size * 0.25,
+        moonY + dy + size * 0.45
+      );
+    }
+  });
+
+
+  // --------------------------------------------------
+  // SIGNAL WAVES AROUND MOON
+  // --------------------------------------------------
+
+  p.noFill();
+  p.stroke(0);
+
+  for (let ring = 0; ring < 4; ring += 1) {
+    const radius = 105 + ring * 23;
+
+    p.strokeWeight(
+      ring === 0 ? 3 : 1
+    );
+
+    p.arc(
+      moonX,
+      moonY,
+      radius * 2,
+      radius * 2,
+      p.radians(205),
+      p.radians(335)
+    );
+
+    p.arc(
+      moonX,
+      moonY,
+      radius * 2,
+      radius * 2,
+      p.radians(25),
+      p.radians(155)
+    );
+  }
+
+
+  // --------------------------------------------------
+  // SIGNAL STRENGTH
+  // --------------------------------------------------
+
+  dashedLine(
+    p,
+    margin,
+    390,
+    w - margin,
+    390,
+    4,
+    4
+  );
+
+  p.fill(0);
+  p.noStroke();
+
+  p.textAlign(p.LEFT, p.TOP);
+  p.textStyle(p.BOLD);
+  p.textSize(10);
+
+  p.text(
+    "SIGNAL STRENGTH",
+    margin,
+    408
+  );
+
+  p.textAlign(p.RIGHT);
+
+  p.text(
+    "██████████  98%",
+    w - margin,
+    408
+  );
+
+  p.textStyle(p.NORMAL);
+
+
+  // --------------------------------------------------
+  // SIGNAL GRAPH
+  // --------------------------------------------------
+
+  const graphTop = 445;
+  const graphBottom = 665;
+  const graphLeft = margin;
+  const graphRight = w - margin;
+
+  // Frame
+  p.noFill();
+  p.stroke(0);
+  p.strokeWeight(2);
+
+  p.rect(
+    graphLeft,
+    graphTop,
+    graphRight - graphLeft,
+    graphBottom - graphTop
+  );
+
+
+  // Measurement lines
+  p.strokeWeight(1);
+
+  for (
+    let y = graphTop + 35;
+    y < graphBottom;
+    y += 42
+  ) {
+    p.line(
+      graphLeft,
+      y,
+      graphRight,
+      y
+    );
+  }
+
+
+  // Signal waveform
+  p.stroke(0);
+  p.strokeWeight(3);
+  p.noFill();
+
+  p.beginShape();
+
+  for (
+    let x = graphLeft + 3;
+    x <= graphRight - 3;
+    x += 3
+  ) {
+    const waveA =
+      p.sin(x * 0.11) * 17;
+
+    const waveB =
+      p.sin(x * 0.037) * 30;
+
+    const noise =
+      p.noise(x * 0.025, 8) * 30;
+
+    const y =
+      (graphTop + graphBottom) / 2 +
+      waveA +
+      waveB +
+      noise -
+      15;
+
+    p.vertex(x, y);
+  }
+
+  p.endShape();
+
+
+  // Graph labels
+  p.noStroke();
+  p.fill(0);
+
+  p.textFont("monospace");
+  p.textSize(7);
+
+  p.textAlign(p.LEFT, p.TOP);
+  p.text(
+    "00:00",
+    graphLeft + 5,
+    graphBottom - 14
+  );
+
+  p.textAlign(p.CENTER, p.TOP);
+  p.text(
+    "SIGNAL / FREQUENCY",
+    center,
+    graphTop + 8
+  );
+
+  p.textAlign(p.RIGHT, p.TOP);
+  p.text(
+    "09:42",
+    graphRight - 5,
+    graphBottom - 14
+  );
+
+
+  // --------------------------------------------------
+  // TRANSMISSION MESSAGE
+  // --------------------------------------------------
+
+  dashedLine(
+    p,
+    margin,
+    700,
+    w - margin,
+    700,
+    5,
+    5
+  );
+
+  p.textAlign(p.CENTER, p.TOP);
+  p.textStyle(p.BOLD);
+  p.textSize(13);
+
+  p.text(
+    "TRANSMISSION DECODED",
+    center,
+    723
+  );
+
+  p.textStyle(p.NORMAL);
+  p.textSize(9);
+
+  p.text(
+    "THE SIGNAL CAME FROM",
+    center,
+    753
+  );
+
+  p.text(
+    "SOMEWHERE BEYOND THE NIGHT.",
+    center,
+    768
+  );
+
+
+  // --------------------------------------------------
+  // CONSTELLATION
+  // --------------------------------------------------
+
+  const constellationTop = 815;
+  const constellationBottom = 1035;
+
+  p.noFill();
+  p.stroke(0);
+  p.strokeWeight(1);
+
+  p.rect(
+    margin,
+    constellationTop,
+    w - margin * 2,
+    constellationBottom - constellationTop
+  );
+
+
+  const stars = [
+    [48, 860],
+    [108, 900],
+    [160, 845],
+    [212, 925],
+    [275, 865],
+    [330, 955],
+    [75, 1000],
+    [145, 970],
+    [230, 995],
+    [305, 1010]
+  ];
+
+
+  // Connecting constellation
+  const connections = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [4, 5],
+    [1, 6],
+    [6, 7],
+    [7, 8],
+    [8, 9]
+  ];
+
+  p.strokeWeight(1);
+
+  connections.forEach(([a, b]) => {
+    p.line(
+      stars[a][0],
+      stars[a][1],
+      stars[b][0],
+      stars[b][1]
+    );
+  });
+
+
+  // Stars
+  stars.forEach(([x, y], index) => {
+    p.fill(0);
+    p.noStroke();
+
+    const size =
+      index === 3
+        ? 7
+        : index === 6
+          ? 5
+          : 3;
+
+    p.circle(x, y, size);
+
+    if (index === 3 || index === 6) {
+      p.stroke(0);
+      p.strokeWeight(1);
+
+      p.line(
+        x - 8,
+        y,
+        x + 8,
+        y
+      );
+
+      p.line(
+        x,
+        y - 8,
+        x,
+        y + 8
+      );
+    }
+  });
+
+
+  p.noStroke();
+  p.fill(0);
+
+  p.textAlign(p.LEFT, p.TOP);
+  p.textSize(7);
+
+  p.text(
+    "UNKNOWN CONSTELLATION / 04",
+    margin + 6,
+    constellationTop + 7
+  );
+
+
+  // --------------------------------------------------
+  // TERRAIN
+  // --------------------------------------------------
+
+  const terrainTop = 1080;
+  const terrainBottom = 1225;
+
+  // Dark mountain
+  p.fill(0);
+  p.noStroke();
+
+  p.beginShape();
+
+  p.vertex(
+    0,
+    terrainBottom
+  );
+
+  for (
+    let x = 0;
+    x <= w;
+    x += 5
+  ) {
+    const mountain =
+      p.noise(
+        x * 0.015,
+        50
+      ) * 80;
+
+    const y =
+      terrainTop +
+      65 -
+      mountain;
+
+    p.vertex(x, y);
+  }
+
+  p.vertex(
+    w,
+    terrainBottom
+  );
+
+  p.endShape(p.CLOSE);
+
+
+  // White foreground ridge
+  p.fill(255);
+
+  p.beginShape();
+
+  p.vertex(
+    0,
+    terrainBottom
+  );
+
+  for (
+    let x = 0;
+    x <= w;
+    x += 5
+  ) {
+    const ridge =
+      p.noise(
+        x * 0.02,
+        100
+      ) * 38;
+
+    const y =
+      terrainBottom -
+      20 -
+      ridge;
+
+    p.vertex(x, y);
+  }
+
+  p.vertex(
+    w,
+    terrainBottom
+  );
+
+  p.endShape(p.CLOSE);
+
+
+  // Antenna
+  p.stroke(0);
+  p.strokeWeight(2);
+
+  p.line(
+    center,
+    1130,
+    center,
+    1185
+  );
+
+  p.line(
+    center,
+    1140,
+    center - 20,
+    1155
+  );
+
+  p.line(
+    center,
+    1140,
+    center + 20,
+    1155
+  );
+
+  p.noStroke();
+  p.fill(0);
+
+  p.circle(
+    center,
+    1128,
+    6
+  );
+
+
+  // --------------------------------------------------
+  // FINAL RECEIPT DATA
+  // --------------------------------------------------
+
+  dashedLine(
+    p,
+    margin,
+    1260,
+    w - margin,
+    1260,
+    5,
+    5
+  );
+
+  p.fill(0);
+  p.textFont("monospace");
+  p.textSize(8);
+
+  p.textAlign(p.LEFT, p.TOP);
+
+  p.text(
+    "TRANSMISSION ID",
+    margin,
+    1280
+  );
+
+  p.text(
+    "LUNA-04-2026",
+    margin,
+    1294
+  );
+
+  p.text(
+    "FREQUENCY",
+    margin,
+    1320
+  );
+
+  p.text(
+    "384.00 MHZ",
+    margin,
+    1334
+  );
+
+  p.textAlign(p.RIGHT, p.TOP);
+
+  p.text(
+    "LATENCY",
+    w - margin,
+    1280
+  );
+
+  p.text(
+    "1.28 SEC",
+    w - margin,
+    1294
+  );
+
+  p.text(
+    "SIGNAL",
+    w - margin,
+    1320
+  );
+
+  p.text(
+    "LOCKED",
+    w - margin,
+    1334
+  );
+
+
+  // --------------------------------------------------
+  // SAFE P5 BARCODE
+  // --------------------------------------------------
+
+  drawSimpleBarcode(
+    p,
+    center,
+    1370
+  );
+
+
+  // Bottom text
+  p.noStroke();
+  p.fill(0);
+
+  p.textAlign(p.CENTER, p.TOP);
+  p.textSize(8);
+
+  p.text(
+    "END OF TRANSMISSION",
+    center,
+    1440
+  );
+
+  p.textSize(7);
+
+  p.text(
+    "RECEIPT // HACK CLUB",
+    center,
+    1455
+  );
+}
+
+
+// --------------------------------------------------
+// SIMPLE BARCODE
+// --------------------------------------------------
+
+function drawSimpleBarcode(p, centerX, y) {
+  const bars = [
+    2, 1, 3, 1, 1, 2, 1, 4,
+    2, 1, 1, 3, 1, 2, 3, 1,
+    1, 1, 4, 2, 1, 3, 2, 1,
+    3, 1, 2, 2, 1, 4, 1, 2,
+    1, 3, 1, 2, 4, 1, 1, 3,
+    2, 1, 3, 1, 2, 1, 4, 1
+  ];
+
+  const barWidth = 2;
+  const barHeight = 48;
+
+  let totalWidth = 0;
+
+  for (const width of bars) {
+    totalWidth += width * barWidth;
+  }
+
+  let x =
+    centerX -
+    totalWidth / 2;
+
+  p.noStroke();
+  p.fill(0);
+
+  bars.forEach((width, index) => {
+    const actualWidth =
+      width * barWidth;
+
+    if (index % 2 === 0) {
+      p.rect(
+        x,
+        y,
+        actualWidth,
+        barHeight
+      );
+    }
+
+    x += actualWidth;
+  });
+
+  // Small barcode text
+  p.textAlign(
+    p.CENTER,
+    p.TOP
+  );
+
+  p.textSize(7);
+  p.fill(0);
+
+  p.text(
+    "LUNA-04-2026",
+    centerX,
+    y + barHeight + 5
+  );
+}
+
+
+// --------------------------------------------------
+// DASHED LINE
+// --------------------------------------------------
+
+function dashedLine(
+  p,
+  x1,                                         
+  y1,
+  x2,
+  y2,                                                   
+  dash,
+  gap   
+) {
+  p.stroke(0);
+  p.strokeWeight(2);
+
+  for (
+    let x = x1;
+    x < x2;
+    x += dash + gap
+  ) {
+    p.line(
+      x,
+      y1,
+      Math.min(x + dash, x2),
+      y2
+    );
+  }
+}
